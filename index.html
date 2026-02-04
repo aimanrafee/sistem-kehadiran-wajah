@@ -4,56 +4,102 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Pilot Test - Sistem Kehadiran Wajah</title>
+
+    <link rel="manifest" href="manifest.json">
+    <meta name="theme-color" content="#00ff88">
+    <meta name="apple-mobile-web-app-capable" content="yes">
+    <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+    <meta name="apple-mobile-web-app-title" content="KehadiranAI">
+    <link rel="apple-touch-icon" href="https://cdn-icons-png.flaticon.com/512/1077/1077114.png">
+
     <script defer src="https://cdn.jsdelivr.net/npm/face-api.js@0.22.2/dist/face-api.min.js"></script>
     <script defer src="script.js"></script>
+
     <style>
-        body { margin: 0; padding: 0; display: flex; flex-direction: column; align-items: center; background: #121212; color: white; font-family: sans-serif; height: 100vh; justify-content: center; }
-        h1 { margin-top: 0; color: #00ff88; text-transform: uppercase; letter-spacing: 2px; }
-        #container { position: relative; border: 5px solid #333; border-radius: 10px; overflow: hidden; background: #000; box-shadow: 0 0 20px rgba(0,255,136,0.2); }
-        canvas { position: absolute; top: 0; left: 0; }
-        #status { margin-top: 15px; padding: 15px 30px; background: #222; border-radius: 50px; font-weight: bold; border: 1px solid #444; min-width: 300px; text-align: center; }
+        body { margin: 0; padding: 0; display: flex; flex-direction: column; align-items: center; background: #121212; color: white; font-family: sans-serif; height: 100vh; justify-content: center; overflow: hidden; }
+        h1 { margin-top: 0; color: #00ff88; text-transform: uppercase; letter-spacing: 2px; font-size: 1.5rem; }
         
-        /* Overlay untuk aktifkan audio */
+        #container { 
+            position: relative; 
+            border: 5px solid #333; 
+            border-radius: 15px; 
+            overflow: hidden; 
+            background: #000; 
+            box-shadow: 0 0 30px rgba(0,255,136,0.15);
+            line-height: 0; /* Elak ruang kosong bawah video */
+        }
+        
+        canvas { position: absolute; top: 0; left: 0; }
+        
+        #status { 
+            margin-top: 20px; 
+            padding: 15px 40px; 
+            background: #1e1e1e; 
+            border-radius: 50px; 
+            font-weight: bold; 
+            border: 1px solid #333; 
+            min-width: 320px; 
+            text-align: center;
+            box-shadow: 0 4px 10px rgba(0,0,0,0.3);
+        }
+
+        /* Overlay Pengaktifan */
         #overlay {
             position: fixed; top: 0; left: 0; width: 100%; height: 100%;
-            background: rgba(0,0,0,0.9);
+            background: rgba(18, 18, 18, 0.95);
             display: flex; flex-direction: column; justify-content: center; align-items: center;
             z-index: 9999;
+            transition: opacity 0.4s ease;
         }
+        
         #startBtn {
-            padding: 20px 50px; font-size: 20px; font-weight: bold; cursor: pointer;
+            padding: 22px 60px; font-size: 1.2rem; font-weight: bold; cursor: pointer;
             border-radius: 50px; border: none; background: #00ff88; color: #121212;
-            transition: transform 0.2s, background 0.2s;
+            box-shadow: 0 10px 20px rgba(0,255,136,0.3);
+            transition: all 0.2s ease;
         }
-        #startBtn:hover { background: #00cc6e; transform: scale(1.05); }
-        #startBtn:active { transform: scale(0.95); }
+        
+        #startBtn:hover { background: #00e67a; transform: translateY(-3px); box-shadow: 0 15px 25px rgba(0,255,136,0.4); }
+        #startBtn:active { transform: translateY(0); }
+        
+        .hint { margin-top: 20px; color: #666; font-size: 0.9rem; }
     </style>
 </head>
 <body>
 
     <div id="overlay">
-        <h2 style="margin-bottom: 20px;">SISTEM KEHADIRAN AI</h2>
-        <button id="startBtn">AKTIFKAN KAMERA & AUDIO</button>
-        <p style="margin-top: 15px; color: #888; font-size: 14px;">Klik untuk memulakan sesi imbasan</p>
+        <div style="background: #1e1e1e; padding: 40px; border-radius: 20px; text-align: center; border: 1px solid #333;">
+            <h2 style="margin-bottom: 10px; color: #00ff88;">SISTEM KEHADIRAN AI</h2>
+            <p style="color: #bbb; margin-bottom: 30px;">Sila aktifkan peranti untuk imbasan wajah.</p>
+            <button id="startBtn">MULA SEKARANG</button>
+            <div class="hint">Memerlukan akses kamera & audio</div>
+        </div>
     </div>
 
     <h1>PILOT TEST: AIMAN</h1>
     
     <div id="container">
-        <video id="video" width="720" height="560" autoplay muted></video>
+        <video id="video" width="720" height="560" autoplay muted playsinline></video>
     </div>
 
-    <div id="status">Sila tunggu, model sedang dimuatkan...</div>
+    <div id="status">Memulakan enjin AI...</div>
 
     <script>
-        // Tambahan kecil untuk mengawal overlay dari sini atau script.js
         const startBtn = document.getElementById('startBtn');
         const overlay = document.getElementById('overlay');
 
         startBtn.addEventListener('click', () => {
-            // AudioContext akan dimulakan dalam script.js apabila butang ini diklik
             overlay.style.opacity = '0';
-            setTimeout(() => overlay.style.display = 'none', 300);
+            setTimeout(() => {
+                overlay.style.display = 'none';
+            }, 400);
+            
+            // Pendaftaran Service Worker untuk PWA
+            if ('serviceWorker' in navigator) {
+                navigator.serviceWorker.register('sw.js').then(() => {
+                    console.log("PWA: Service Worker Aktif");
+                });
+            }
         });
     </script>
 </body>
