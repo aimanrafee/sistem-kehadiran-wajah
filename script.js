@@ -4,7 +4,7 @@ const startBtn = document.getElementById('startBtn');
 
 const SCRIPT_URL = 'https://script.google.com/macros/s/AKfycbyjelrWeeujFu4IWje9775B5x63lIB6V7qkKOKqItuOFDue9V1rbvKHOr9aMNbLV7jAlw/exec';
 
-// --- KEMASKINI 1: Tambah Dahlia ke dalam senarai ---
+// --- TAMBAH USER BARU DI SINI ---
 const labels = ['Aiman', 'Dahlia']; 
 
 let isSubmitting = false;
@@ -13,16 +13,21 @@ let audioCtx;
 // --- FUNGSI BEEP ---
 function playBeep() {
     if (!audioCtx) return; 
+
     if (audioCtx.state === 'suspended') {
         audioCtx.resume();
     }
+
     const oscillator = audioCtx.createOscillator();
     const gainNode = audioCtx.createGain();
+
     oscillator.connect(gainNode);
     gainNode.connect(audioCtx.destination);
+
     oscillator.type = 'sine'; 
     oscillator.frequency.setValueAtTime(880, audioCtx.currentTime); 
     gainNode.gain.setValueAtTime(0.1, audioCtx.currentTime); 
+
     oscillator.start();
     setTimeout(() => {
         oscillator.stop();
@@ -85,9 +90,8 @@ video.addEventListener('play', async () => {
             const drawBox = new faceapi.draw.DrawBox(box, { label: result.toString() });
             drawBox.draw(canvas);
 
-            // --- KEMASKINI 2: Logik Hantar Data yang lebih umum ---
-            // Kod asal anda hanya semak 'Aiman'. Kita tukar supaya ia terima sesiapa sahaja yang dikenali.
-            if (result.label !== 'unknown' && !isSubmitting) {
+            // Logik Hantar Data untuk Aiman atau Dahlia
+            if (labels.includes(result.label) && !isSubmitting) {
                 playBeep(); 
                 await sendToGoogleSheet(result.label);
             }
