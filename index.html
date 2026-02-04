@@ -76,7 +76,7 @@
         </div>
     </div>
 
-    <h1>PILOT TEST: AIMAN</h1>
+    <h1>SISTEM IMBASAN WAJAH</h1>
     
     <div id="container">
         <video id="video" width="720" height="560" autoplay muted playsinline></video>
@@ -85,7 +85,6 @@
     <div id="status">Memulakan enjin AI...</div>
 
     <script>
-        // Dikemaskini: Tidak lagi menggunakan 'const startBtn' untuk elak SyntaxError
         document.getElementById('startBtn').addEventListener('click', () => {
             const overlay = document.getElementById('overlay');
             overlay.style.opacity = '0';
@@ -94,6 +93,7 @@
             }, 400);
             
             if ('serviceWorker' in navigator) {
+                // Gunakan path relatif yang betul jika berada dalam sub-folder
                 navigator.serviceWorker.register('sw.js').then(() => {
                     console.log("PWA: Service Worker Aktif");
                 });
