@@ -1,14 +1,22 @@
 {
   "name": "Sistem Kehadiran Wajah",
   "short_name": "KehadiranAI",
+  "description": "Sistem kehadiran berasaskan pengecaman wajah offline",
   "start_url": "/sistem-kehadiran-wajah/",
   "display": "standalone",
-  "background_color": "#1e1e1e",
+  "orientation": "portrait-primary",
+  "background_color": "#121212",
   "theme_color": "#00ff88",
   "icons": [
     {
       "src": "https://cdn-icons-png.flaticon.com/512/1077/1077114.png",
       "sizes": "512x512",
+      "type": "image/png",
+      "purpose": "any maskable"
+    },
+    {
+      "src": "https://cdn-icons-png.flaticon.com/512/1077/1077114.png",
+      "sizes": "192x192",
       "type": "image/png"
     }
   ]
