@@ -1,15 +1,37 @@
 const video = document.getElementById('video');
 const statusText = document.getElementById('status');
 
-// URL Web App Google Apps Script anda
 const SCRIPT_URL = 'https://script.google.com/macros/s/AKfycbyjelrWeeujFu4IWje9775B5x63lIB6V7qkKOKqItuOFDue9V1rbvKHOr9aMNbLV7jAlw/exec';
-
-// Nama folder dalam labeled_images
 const labels = ['Aiman']; 
 
 let isSubmitting = false;
 
-// 1. Muat model AI dari folder /models
+// --- FUNGSI BEEP (BARU) ---
+function playBeep() {
+    try {
+        const audioCtx = new (window.AudioContext || window.webkitAudioContext)();
+        const oscillator = audioCtx.createOscillator();
+        const gainNode = audioCtx.createGain();
+
+        oscillator.connect(gainNode);
+        gainNode.connect(audioCtx.destination);
+
+        oscillator.type = 'sine'; 
+        oscillator.frequency.setValueAtTime(880, audioCtx.currentTime); // Nada A5
+        gainNode.gain.setValueAtTime(0.1, audioCtx.currentTime); // Volume perlahan
+
+        oscillator.start();
+        // Berhenti selepas 1 saat
+        setTimeout(() => {
+            oscillator.stop();
+            audioCtx.close();
+        }, 1000);
+    } catch (e) {
+        console.log("Audio gagal dimainkan. Perlu klik skrin sekali dahulu.");
+    }
+}
+
+// 1. Muat model AI
 Promise.all([
     faceapi.nets.tinyFaceDetector.loadFromUri('/sistem-kehadiran-wajah/models'),
     faceapi.nets.faceLandmark68Net.loadFromUri('/sistem-kehadiran-wajah/models'),
@@ -21,7 +43,7 @@ function startVideo() {
     navigator.mediaDevices.getUserMedia({ video: { width: 1280, height: 720 } })
         .then(stream => {
             video.srcObject = stream;
-            statusText.innerText = "Kamera Aktif. Sila tunjuk muka.";
+            statusText.innerText = "Kamera Aktif. Sila klik skrin untuk aktifkan bunyi.";
         })
         .catch(err => {
             statusText.innerText = "Ralat Kamera: Pastikan webcam Hikvision disambung.";
@@ -35,7 +57,7 @@ video.addEventListener('play', async () => {
     
     const canvas = faceapi.createCanvasFromMedia(video);
     document.getElementById('container').append(canvas);
-    const displaySize = { width: video.width, height: video.height };
+    const displaySize = { width: 1280, height: 720 }; // Guna nilai tetap untuk konsistensi
     faceapi.matchDimensions(canvas, displaySize);
 
     setInterval(async () => {
@@ -49,17 +71,17 @@ video.addEventListener('play', async () => {
         resizedDetections.forEach(async detection => {
             const result = faceMatcher.findBestMatch(detection.descriptor);
             
-            // Lukis kotak pada muka
             const box = detection.detection.box;
             const drawBox = new faceapi.draw.DrawBox(box, { label: result.toString() });
             drawBox.draw(canvas);
 
-            // Jika Aiman dikesan
+            // Jika Aiman dikesan dan sistem tidak sibuk menghantar data
             if (result.label === 'Aiman' && !isSubmitting) {
+                playBeep(); // <--- Bunyi Beep dimainkan di sini
                 await sendToGoogleSheet(result.label);
             }
         });
-    }, 1500); // Semak setiap 1.5 saat
+    }, 1500); 
 });
 
 async function loadLabeledImages() {
@@ -67,7 +89,6 @@ async function loadLabeledImages() {
         labels.map(async label => {
             const descriptions = [];
             try {
-                // Mengambil gambar dari path: /sistem-kehadiran-wajah/labeled_images/Aiman/1.jpg
                 const img = await faceapi.fetchImage(`/sistem-kehadiran-wajah/labeled_images/${label}/1.jpg`);
                 const detections = await faceapi.detectSingleFace(img).withFaceLandmarks().withFaceDescriptor();
                 if (detections) descriptions.push(detections.descriptor);
@@ -81,20 +102,21 @@ async function loadLabeledImages() {
 
 async function sendToGoogleSheet(userName) {
     isSubmitting = true;
-    statusText.innerText = "Muka dikesan! Menghantar ke Google Sheets...";
+    statusText.innerText = "Muka dikesan! Beep... Menghantar data...";
     
     try {
         await fetch(SCRIPT_URL, {
             method: 'POST',
-            mode: 'no-cors', // Penting untuk Google Apps Script
-            cache: 'no-cache',
+            mode: 'no-cors',
             body: JSON.stringify({ name: userName })
         });
         
         statusText.innerText = "KEHADIRAN BERJAYA: " + userName;
         
-        // Elak spam: Tunggu 10 saat sebelum imbasan seterusnya
-        setTimeout(() => { isSubmitting = false; statusText.innerText = "Sedia untuk imbasan seterusnya."; }, 10000);
+        setTimeout(() => { 
+            isSubmitting = false; 
+            statusText.innerText = "Sedia untuk imbasan seterusnya."; 
+        }, 10000); // Lock selama 10 saat
         
     } catch (e) {
         console.error("Ralat hantar data", e);
