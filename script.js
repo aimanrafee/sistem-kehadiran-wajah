@@ -4,7 +4,7 @@ const startBtn = document.getElementById('startBtn');
 
 const SCRIPT_URL = 'https://script.google.com/macros/s/AKfycbyjelrWeeujFu4IWje9775B5x63lIB6V7qkKOKqItuOFDue9V1rbvKHOr9aMNbLV7jAlw/exec';
 
-// --- TAMBAH USER BARU DI SINI ---
+// 1. Tambah Dahlia dalam senarai labels
 const labels = ['Aiman', 'Dahlia']; 
 
 let isSubmitting = false;
@@ -90,8 +90,8 @@ video.addEventListener('play', async () => {
             const drawBox = new faceapi.draw.DrawBox(box, { label: result.toString() });
             drawBox.draw(canvas);
 
-            // Logik Hantar Data untuk Aiman atau Dahlia
-            if (labels.includes(result.label) && !isSubmitting) {
+            // Logik: Hantar data jika Aiman ATAU Dahlia dikesan
+            if ((result.label === 'Aiman' || result.label === 'Dahlia') && !isSubmitting) {
                 playBeep(); 
                 await sendToGoogleSheet(result.label);
             }
@@ -119,7 +119,7 @@ async function loadLabeledImages() {
 // 5. Hantar ke Google Apps Script
 async function sendToGoogleSheet(userName) {
     isSubmitting = true;
-    statusText.innerText = "Muka " + userName + " dikesan! Menghantar kehadiran...";
+    statusText.innerText = "Muka dikesan! Menghantar kehadiran...";
     try {
         await fetch(SCRIPT_URL, {
             method: 'POST',
