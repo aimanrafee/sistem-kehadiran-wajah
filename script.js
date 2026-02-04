@@ -3,7 +3,9 @@ const statusText = document.getElementById('status');
 const startBtn = document.getElementById('startBtn');
 
 const SCRIPT_URL = 'https://script.google.com/macros/s/AKfycbyjelrWeeujFu4IWje9775B5x63lIB6V7qkKOKqItuOFDue9V1rbvKHOr9aMNbLV7jAlw/exec';
-const labels = ['Aiman']; 
+
+// --- KEMASKINI 1: Tambah Dahlia ke dalam senarai ---
+const labels = ['Aiman', 'Dahlia']; 
 
 let isSubmitting = false;
 let audioCtx; 
@@ -11,21 +13,16 @@ let audioCtx;
 // --- FUNGSI BEEP ---
 function playBeep() {
     if (!audioCtx) return; 
-
     if (audioCtx.state === 'suspended') {
         audioCtx.resume();
     }
-
     const oscillator = audioCtx.createOscillator();
     const gainNode = audioCtx.createGain();
-
     oscillator.connect(gainNode);
     gainNode.connect(audioCtx.destination);
-
     oscillator.type = 'sine'; 
     oscillator.frequency.setValueAtTime(880, audioCtx.currentTime); 
     gainNode.gain.setValueAtTime(0.1, audioCtx.currentTime); 
-
     oscillator.start();
     setTimeout(() => {
         oscillator.stop();
@@ -44,7 +41,6 @@ Promise.all([
 
 // 2. Event Listener untuk butang "Aktifkan"
 startBtn.addEventListener('click', () => {
-    // Mulakan AudioContext selepas interaksi fizikal (Syarat Browser)
     if (!audioCtx) {
         audioCtx = new (window.AudioContext || window.webkitAudioContext)();
     }
@@ -71,7 +67,6 @@ video.addEventListener('play', async () => {
     const canvas = faceapi.createCanvasFromMedia(video);
     document.getElementById('container').append(canvas);
     
-    // Gunakan 720x560 supaya selari dengan CSS/HTML anda
     const displaySize = { width: 720, height: 560 };
     faceapi.matchDimensions(canvas, displaySize);
 
@@ -90,8 +85,9 @@ video.addEventListener('play', async () => {
             const drawBox = new faceapi.draw.DrawBox(box, { label: result.toString() });
             drawBox.draw(canvas);
 
-            // Logik Hantar Data & Beep
-            if (result.label === 'Aiman' && !isSubmitting) {
+            // --- KEMASKINI 2: Logik Hantar Data yang lebih umum ---
+            // Kod asal anda hanya semak 'Aiman'. Kita tukar supaya ia terima sesiapa sahaja yang dikenali.
+            if (result.label !== 'unknown' && !isSubmitting) {
                 playBeep(); 
                 await sendToGoogleSheet(result.label);
             }
@@ -119,7 +115,7 @@ async function loadLabeledImages() {
 // 5. Hantar ke Google Apps Script
 async function sendToGoogleSheet(userName) {
     isSubmitting = true;
-    statusText.innerText = "Muka dikesan! Menghantar kehadiran...";
+    statusText.innerText = "Muka " + userName + " dikesan! Menghantar kehadiran...";
     try {
         await fetch(SCRIPT_URL, {
             method: 'POST',
@@ -128,7 +124,6 @@ async function sendToGoogleSheet(userName) {
         });
         statusText.innerText = "BERJAYA: " + userName;
         
-        // Elak double-submit: Tunggu 10 saat
         setTimeout(() => { 
             isSubmitting = false; 
             statusText.innerText = "Sedia untuk imbasan seterusnya."; 
