@@ -1,18 +1,17 @@
 const video = document.getElementById('video');
 const statusText = document.getElementById('status');
-const startBtn = document.getElementById('startBtn'); // Ambil rujukan butang
+const startBtn = document.getElementById('startBtn');
 
 const SCRIPT_URL = 'https://script.google.com/macros/s/AKfycbyjelrWeeujFu4IWje9775B5x63lIB6V7qkKOKqItuOFDue9V1rbvKHOr9aMNbLV7jAlw/exec';
 const labels = ['Aiman']; 
 
 let isSubmitting = false;
-let audioCtx; // Biarkan kosong dahulu
+let audioCtx; 
 
-// Fungsi Beep yang diperkemas
+// --- FUNGSI BEEP ---
 function playBeep() {
     if (!audioCtx) return; 
 
-    // Pastikan audio context aktif (resume jika suspended)
     if (audioCtx.state === 'suspended') {
         audioCtx.resume();
     }
@@ -30,25 +29,25 @@ function playBeep() {
     oscillator.start();
     setTimeout(() => {
         oscillator.stop();
-    }, 1000); // Beep 1 saat
+    }, 1000); 
 }
 
-// 1. Muat model AI (Sama seperti kod asal)
+// 1. Muat model AI
 Promise.all([
     faceapi.nets.tinyFaceDetector.loadFromUri('/sistem-kehadiran-wajah/models'),
     faceapi.nets.faceLandmark68Net.loadFromUri('/sistem-kehadiran-wajah/models'),
     faceapi.nets.faceRecognitionNet.loadFromUri('/sistem-kehadiran-wajah/models'),
     faceapi.nets.ssdMobilenetv1.loadFromUri('/sistem-kehadiran-wajah/models')
 ]).then(() => {
-    statusText.innerText = "Model dimuatkan. Klik butang di atas untuk mula.";
+    statusText.innerText = "Model AI sedia. Sila klik butang di atas.";
 });
 
 // 2. Event Listener untuk butang "Aktifkan"
 startBtn.addEventListener('click', () => {
-    // MULAKAN AUDIO DI SINI (Interaksi Pengguna)
-    audioCtx = new (window.AudioContext || window.webkitAudioContext)();
-    
-    // Mulakan video
+    // Mulakan AudioContext selepas interaksi fizikal (Syarat Browser)
+    if (!audioCtx) {
+        audioCtx = new (window.AudioContext || window.webkitAudioContext)();
+    }
     startVideo();
 });
 
@@ -56,21 +55,24 @@ function startVideo() {
     navigator.mediaDevices.getUserMedia({ video: { width: 1280, height: 720 } })
         .then(stream => {
             video.srcObject = stream;
-            statusText.innerText = "Kamera & Audio Aktif. Sila tunjuk muka.";
+            statusText.innerText = "Sistem Aktif. Sila tunjuk muka.";
         })
         .catch(err => {
-            statusText.innerText = "Ralat Kamera: Pastikan webcam disambung.";
+            statusText.innerText = "Ralat Kamera: Pastikan peranti disambung.";
+            console.error(err);
         });
 }
 
-// Logik pengesanan (Sama seperti kod asal anda)
+// 3. Logik Pengesanan Wajah
 video.addEventListener('play', async () => {
     const labeledFaceDescriptors = await loadLabeledImages();
     const faceMatcher = new faceapi.FaceMatcher(labeledFaceDescriptors, 0.6);
     
     const canvas = faceapi.createCanvasFromMedia(video);
     document.getElementById('container').append(canvas);
-    const displaySize = { width: video.width, height: video.height };
+    
+    // Gunakan 720x560 supaya selari dengan CSS/HTML anda
+    const displaySize = { width: 720, height: 560 };
     faceapi.matchDimensions(canvas, displaySize);
 
     setInterval(async () => {
@@ -88,15 +90,16 @@ video.addEventListener('play', async () => {
             const drawBox = new faceapi.draw.DrawBox(box, { label: result.toString() });
             drawBox.draw(canvas);
 
+            // Logik Hantar Data & Beep
             if (result.label === 'Aiman' && !isSubmitting) {
-                playBeep(); // Beep akan berbunyi sekarang!
+                playBeep(); 
                 await sendToGoogleSheet(result.label);
             }
         });
     }, 1500); 
 });
 
-// Fungsi load images & send data (Kekal sama)
+// 4. Load Imej Rujukan
 async function loadLabeledImages() {
     return Promise.all(
         labels.map(async label => {
@@ -106,28 +109,42 @@ async function loadLabeledImages() {
                 const detections = await faceapi.detectSingleFace(img).withFaceLandmarks().withFaceDescriptor();
                 if (detections) descriptions.push(detections.descriptor);
             } catch (e) {
-                console.error("Gagal muat imej rujukan: " + label);
+                console.error("Imej rujukan tidak dijumpai: " + label);
             }
             return new faceapi.LabeledFaceDescriptors(label, descriptions);
         })
     );
 }
 
+// 5. Hantar ke Google Apps Script
 async function sendToGoogleSheet(userName) {
     isSubmitting = true;
-    statusText.innerText = "Muka dikesan! Beep... Menghantar data...";
+    statusText.innerText = "Muka dikesan! Menghantar kehadiran...";
     try {
         await fetch(SCRIPT_URL, {
             method: 'POST',
             mode: 'no-cors',
             body: JSON.stringify({ name: userName })
         });
-        statusText.innerText = "KEHADIRAN BERJAYA: " + userName;
+        statusText.innerText = "BERJAYA: " + userName;
+        
+        // Elak double-submit: Tunggu 10 saat
         setTimeout(() => { 
             isSubmitting = false; 
             statusText.innerText = "Sedia untuk imbasan seterusnya."; 
         }, 10000);
     } catch (e) {
+        console.error("Ralat Network", e);
         isSubmitting = false;
+        statusText.innerText = "Ralat hantar data. Cuba lagi.";
     }
+}
+
+// 6. PENDAFTARAN PWA SERVICE WORKER
+if ('serviceWorker' in navigator) {
+    window.addEventListener('load', () => {
+        navigator.serviceWorker.register('/sistem-kehadiran-wajah/sw.js')
+            .then(reg => console.log('PWA: Service Worker Berdaftar', reg))
+            .catch(err => console.log('PWA: Ralat SW', err));
+    });
 }
