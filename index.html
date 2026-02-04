@@ -2,7 +2,7 @@
 <html lang="en">
 <head>
     <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
     <title>Pilot Test - Sistem Kehadiran Wajah</title>
 
     <link rel="manifest" href="manifest.json">
@@ -17,8 +17,14 @@
     <script defer src="script.js"></script>
 
     <style>
-        body { margin: 0; padding: 0; display: flex; flex-direction: column; align-items: center; background: #121212; color: white; font-family: sans-serif; height: 100vh; justify-content: center; overflow: hidden; }
-        h1 { margin-top: 0; color: #00ff88; text-transform: uppercase; letter-spacing: 2px; font-size: 1.5rem; }
+        /* KEMASKINI: Memastikan kandungan muat dalam skrin tanpa limpah (overflow) */
+        body { 
+            margin: 0; padding: 0; display: flex; flex-direction: column; 
+            align-items: center; background: #121212; color: white; 
+            font-family: sans-serif; height: 100vh; justify-content: center; 
+            overflow: hidden; touch-action: none;
+        }
+        h1 { margin-top: 0; color: #00ff88; text-transform: uppercase; letter-spacing: 2px; font-size: 1.5rem; text-align: center; }
         
         #container { 
             position: relative; 
@@ -28,20 +34,30 @@
             background: #000; 
             box-shadow: 0 0 30px rgba(0,255,136,0.15);
             line-height: 0;
+            /* KEMASKINI: Supaya kotak video responsif pada skrin kecil */
+            max-width: 95vw;
         }
         
-        canvas { position: absolute; top: 0; left: 0; }
+        /* KEMASKINI: Video akan mengikut lebar container secara automatik */
+        #video {
+            width: 100% !important;
+            height: auto !important;
+            max-width: 720px;
+        }
+        
+        canvas { position: absolute; top: 0; left: 0; width: 100% !important; height: 100% !important; }
         
         #status { 
             margin-top: 20px; 
-            padding: 15px 40px; 
+            padding: 15px 20px; 
             background: #1e1e1e; 
             border-radius: 50px; 
             font-weight: bold; 
             border: 1px solid #333; 
-            min-width: 320px; 
+            min-width: 280px; 
             text-align: center;
             box-shadow: 0 4px 10px rgba(0,0,0,0.3);
+            font-size: 0.9rem;
         }
 
         #overlay {
@@ -68,7 +84,7 @@
 <body>
 
     <div id="overlay">
-        <div style="background: #1e1e1e; padding: 40px; border-radius: 20px; text-align: center; border: 1px solid #333;">
+        <div style="background: #1e1e1e; padding: 40px; border-radius: 20px; text-align: center; border: 1px solid #333; width: 80%;">
             <h2 style="margin-bottom: 10px; color: #00ff88;">SISTEM KEHADIRAN AI</h2>
             <p style="color: #bbb; margin-bottom: 30px;">Sila aktifkan peranti untuk imbasan wajah.</p>
             <button id="startBtn">MULA SEKARANG</button>
@@ -93,7 +109,6 @@
             }, 400);
             
             if ('serviceWorker' in navigator) {
-                // Gunakan path relatif yang betul jika berada dalam sub-folder
                 navigator.serviceWorker.register('sw.js').then(() => {
                     console.log("PWA: Service Worker Aktif");
                 });
