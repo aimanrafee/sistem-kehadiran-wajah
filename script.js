@@ -1,63 +1,76 @@
 const video = document.getElementById('video');
 const statusText = document.getElementById('status');
+const startBtn = document.getElementById('startBtn'); // Ambil rujukan butang
 
 const SCRIPT_URL = 'https://script.google.com/macros/s/AKfycbyjelrWeeujFu4IWje9775B5x63lIB6V7qkKOKqItuOFDue9V1rbvKHOr9aMNbLV7jAlw/exec';
 const labels = ['Aiman']; 
 
 let isSubmitting = false;
+let audioCtx; // Biarkan kosong dahulu
 
-// --- FUNGSI BEEP (BARU) ---
+// Fungsi Beep yang diperkemas
 function playBeep() {
-    try {
-        const audioCtx = new (window.AudioContext || window.webkitAudioContext)();
-        const oscillator = audioCtx.createOscillator();
-        const gainNode = audioCtx.createGain();
+    if (!audioCtx) return; 
 
-        oscillator.connect(gainNode);
-        gainNode.connect(audioCtx.destination);
-
-        oscillator.type = 'sine'; 
-        oscillator.frequency.setValueAtTime(880, audioCtx.currentTime); // Nada A5
-        gainNode.gain.setValueAtTime(0.1, audioCtx.currentTime); // Volume perlahan
-
-        oscillator.start();
-        // Berhenti selepas 1 saat
-        setTimeout(() => {
-            oscillator.stop();
-            audioCtx.close();
-        }, 1000);
-    } catch (e) {
-        console.log("Audio gagal dimainkan. Perlu klik skrin sekali dahulu.");
+    // Pastikan audio context aktif (resume jika suspended)
+    if (audioCtx.state === 'suspended') {
+        audioCtx.resume();
     }
+
+    const oscillator = audioCtx.createOscillator();
+    const gainNode = audioCtx.createGain();
+
+    oscillator.connect(gainNode);
+    gainNode.connect(audioCtx.destination);
+
+    oscillator.type = 'sine'; 
+    oscillator.frequency.setValueAtTime(880, audioCtx.currentTime); 
+    gainNode.gain.setValueAtTime(0.1, audioCtx.currentTime); 
+
+    oscillator.start();
+    setTimeout(() => {
+        oscillator.stop();
+    }, 1000); // Beep 1 saat
 }
 
-// 1. Muat model AI
+// 1. Muat model AI (Sama seperti kod asal)
 Promise.all([
     faceapi.nets.tinyFaceDetector.loadFromUri('/sistem-kehadiran-wajah/models'),
     faceapi.nets.faceLandmark68Net.loadFromUri('/sistem-kehadiran-wajah/models'),
     faceapi.nets.faceRecognitionNet.loadFromUri('/sistem-kehadiran-wajah/models'),
     faceapi.nets.ssdMobilenetv1.loadFromUri('/sistem-kehadiran-wajah/models')
-]).then(startVideo);
+]).then(() => {
+    statusText.innerText = "Model dimuatkan. Klik butang di atas untuk mula.";
+});
+
+// 2. Event Listener untuk butang "Aktifkan"
+startBtn.addEventListener('click', () => {
+    // MULAKAN AUDIO DI SINI (Interaksi Pengguna)
+    audioCtx = new (window.AudioContext || window.webkitAudioContext)();
+    
+    // Mulakan video
+    startVideo();
+});
 
 function startVideo() {
     navigator.mediaDevices.getUserMedia({ video: { width: 1280, height: 720 } })
         .then(stream => {
             video.srcObject = stream;
-            statusText.innerText = "Kamera Aktif. Sila klik skrin untuk aktifkan bunyi.";
+            statusText.innerText = "Kamera & Audio Aktif. Sila tunjuk muka.";
         })
         .catch(err => {
-            statusText.innerText = "Ralat Kamera: Pastikan webcam Hikvision disambung.";
-            console.error(err);
+            statusText.innerText = "Ralat Kamera: Pastikan webcam disambung.";
         });
 }
 
+// Logik pengesanan (Sama seperti kod asal anda)
 video.addEventListener('play', async () => {
     const labeledFaceDescriptors = await loadLabeledImages();
     const faceMatcher = new faceapi.FaceMatcher(labeledFaceDescriptors, 0.6);
     
     const canvas = faceapi.createCanvasFromMedia(video);
     document.getElementById('container').append(canvas);
-    const displaySize = { width: 1280, height: 720 }; // Guna nilai tetap untuk konsistensi
+    const displaySize = { width: video.width, height: video.height };
     faceapi.matchDimensions(canvas, displaySize);
 
     setInterval(async () => {
@@ -75,15 +88,15 @@ video.addEventListener('play', async () => {
             const drawBox = new faceapi.draw.DrawBox(box, { label: result.toString() });
             drawBox.draw(canvas);
 
-            // Jika Aiman dikesan dan sistem tidak sibuk menghantar data
             if (result.label === 'Aiman' && !isSubmitting) {
-                playBeep(); // <--- Bunyi Beep dimainkan di sini
+                playBeep(); // Beep akan berbunyi sekarang!
                 await sendToGoogleSheet(result.label);
             }
         });
     }, 1500); 
 });
 
+// Fungsi load images & send data (Kekal sama)
 async function loadLabeledImages() {
     return Promise.all(
         labels.map(async label => {
@@ -103,23 +116,18 @@ async function loadLabeledImages() {
 async function sendToGoogleSheet(userName) {
     isSubmitting = true;
     statusText.innerText = "Muka dikesan! Beep... Menghantar data...";
-    
     try {
         await fetch(SCRIPT_URL, {
             method: 'POST',
             mode: 'no-cors',
             body: JSON.stringify({ name: userName })
         });
-        
         statusText.innerText = "KEHADIRAN BERJAYA: " + userName;
-        
         setTimeout(() => { 
             isSubmitting = false; 
             statusText.innerText = "Sedia untuk imbasan seterusnya."; 
-        }, 10000); // Lock selama 10 saat
-        
+        }, 10000);
     } catch (e) {
-        console.error("Ralat hantar data", e);
         isSubmitting = false;
     }
 }
