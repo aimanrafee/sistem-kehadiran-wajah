@@ -1,0 +1,15 @@
+{
+  "name": "Sistem Kehadiran Wajah",
+  "short_name": "KehadiranAI",
+  "start_url": "/sistem-kehadiran-wajah/",
+  "display": "standalone",
+  "background_color": "#1e1e1e",
+  "theme_color": "#00ff88",
+  "icons": [
+    {
+      "src": "https://cdn-icons-png.flaticon.com/512/1077/1077114.png",
+      "sizes": "512x512",
+      "type": "image/png"
+    }
+  ]
+}
