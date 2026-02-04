@@ -4,7 +4,7 @@ const startBtn = document.getElementById('startBtn');
 
 const SCRIPT_URL = 'https://script.google.com/macros/s/AKfycbyjelrWeeujFu4IWje9775B5x63lIB6V7qkKOKqItuOFDue9V1rbvKHOr9aMNbLV7jAlw/exec';
 
-// 1. Tambah Dahlia dalam senarai labels
+// 1. Senarai labels (Aiman & Dahlia)
 const labels = ['Aiman', 'Dahlia']; 
 
 let isSubmitting = false;
@@ -13,28 +13,23 @@ let audioCtx;
 // --- FUNGSI BEEP ---
 function playBeep() {
     if (!audioCtx) return; 
-
     if (audioCtx.state === 'suspended') {
         audioCtx.resume();
     }
-
     const oscillator = audioCtx.createOscillator();
     const gainNode = audioCtx.createGain();
-
     oscillator.connect(gainNode);
     gainNode.connect(audioCtx.destination);
-
     oscillator.type = 'sine'; 
     oscillator.frequency.setValueAtTime(880, audioCtx.currentTime); 
     gainNode.gain.setValueAtTime(0.1, audioCtx.currentTime); 
-
     oscillator.start();
     setTimeout(() => {
         oscillator.stop();
     }, 1000); 
 }
 
-// 1. Muat model AI
+// 2. Muat model AI
 Promise.all([
     faceapi.nets.tinyFaceDetector.loadFromUri('/sistem-kehadiran-wajah/models'),
     faceapi.nets.faceLandmark68Net.loadFromUri('/sistem-kehadiran-wajah/models'),
@@ -44,7 +39,7 @@ Promise.all([
     statusText.innerText = "Model AI sedia. Sila klik butang di atas.";
 });
 
-// 2. Event Listener untuk butang "Aktifkan"
+// 3. Event Listener untuk butang "Aktifkan"
 startBtn.addEventListener('click', () => {
     if (!audioCtx) {
         audioCtx = new (window.AudioContext || window.webkitAudioContext)();
@@ -64,15 +59,20 @@ function startVideo() {
         });
 }
 
-// 3. Logik Pengesanan Wajah
+// 4. Logik Pengesanan Wajah (Responsif Dikemaskini)
 video.addEventListener('play', async () => {
     const labeledFaceDescriptors = await loadLabeledImages();
+    // Menggunakan threshold 0.5 sesuai permintaan anda
     const faceMatcher = new faceapi.FaceMatcher(labeledFaceDescriptors, 0.5);
     
     const canvas = faceapi.createCanvasFromMedia(video);
     document.getElementById('container').append(canvas);
     
-    const displaySize = { width: 720, height: 560 };
+    // KEMASKINI RESPONSIF: Mengambil saiz paparan sebenar pada skrin peranti
+    const displaySize = { 
+        width: video.offsetWidth, 
+        height: video.offsetHeight 
+    };
     faceapi.matchDimensions(canvas, displaySize);
 
     setInterval(async () => {
@@ -99,7 +99,7 @@ video.addEventListener('play', async () => {
     }, 1500); 
 });
 
-// 4. Load Imej Rujukan
+// 5. Load Imej Rujukan
 async function loadLabeledImages() {
     return Promise.all(
         labels.map(async label => {
@@ -116,7 +116,7 @@ async function loadLabeledImages() {
     );
 }
 
-// 5. Hantar ke Google Apps Script
+// 6. Hantar ke Google Apps Script
 async function sendToGoogleSheet(userName) {
     isSubmitting = true;
     statusText.innerText = "Muka dikesan! Menghantar kehadiran...";
@@ -139,7 +139,7 @@ async function sendToGoogleSheet(userName) {
     }
 }
 
-// 6. PENDAFTARAN PWA SERVICE WORKER
+// 7. PENDAFTARAN PWA SERVICE WORKER
 if ('serviceWorker' in navigator) {
     window.addEventListener('load', () => {
         navigator.serviceWorker.register('/sistem-kehadiran-wajah/sw.js')
